@@ -1,0 +1,119 @@
+import pandas as pd
+
+# load data
+bank ="'bank.csv'"
+df = pd.read_csv('bank.csv', delimiter=';',
+names=['age', 'job', 'marital', 'education', 'default', 'housing', 'loan', 'contact', 'month',' day_of_week','duration','campaign','pdays','previous','poutcome','emp.var.rate','cons.price.idx','cons.conf.idx','euribor3m','nr.employed','y'])
+
+column_list = ['age', 'job', 'marital', 'education', 'default', 'housing', 'loan', 'contact', 'month',' day_of_week','duration','campaign','pdays','previous','poutcome','emp.var.rate','cons.price.idx','cons.conf.idx','euribor3m','nr.employed','y']
+# import dash
+import dash
+import dash_html_components as html
+import dash_core_components as dcc
+import plotly.express as px
+from dash.dependencies import Input, Output
+import plotly.graph_objects as go
+
+# Initialise the app
+app = dash.Dash(__name__)
+
+# Callback for interactive scatterplot
+@app.callback(Output('scatterplot', 'figure'),
+              [Input('selector1', 'value'), Input('selector2', 'value')])
+def update_scatterplot(selector1, selector2):
+    ''' Draw traces of the feature 'value' based one the currently selected column '''
+    # STEP 1
+    trace = []  
+    df_sub = df
+    # STEP 2
+    # Draw and append traces for each column
+    for job in list(df_sub['job'].unique()):   
+        trace.append(go.Scatter(x=df_sub[df_sub['job'] == job][selector1],
+                                 y=df_sub[df_sub['job'] == job][selector2],
+                                 mode='markers',
+                                 name=job,
+                                 textposition='bottom center'))  
+    # STEP 3
+    traces = [trace]
+    data = [val for sublist in traces for val in sublist]
+    # Define Figure
+    # STEP 4
+    figure = {'data': data,
+              'layout': go.Layout(
+                  template='plotly_dark',
+                  paper_bgcolor='rgba(0, 0, 0, 0)',
+                  plot_bgcolor='rgba(0, 0, 0, 0)',
+                  autosize=True,
+                  title={'text': 'Bank Scatter Plot based on Job', 'font': {'color': 'white'}, 'x': 0.5},
+              ),
+              }
+    return figure
+
+
+# Define the app
+app.layout = html.Div(children=[
+        html.Div(className='row',  # Define the row element
+                 children=[
+                     # Define the left element
+                     html.Div(className='four columns div-user-controls',
+                              children = [
+                                  html.H2('Bank Dashboard'),
+                                  html.P('''Visualising the Bank dataset with Plotly - Dash'''),
+                                  html.P('''Pick x and y columns from the dropdown below.'''),
+                                
+                                  # Adding option to select columns
+                                  html.Div(className='div-for-dropdown',
+                                           children=[
+                                               dcc.Dropdown(id='selector1',
+                                                            options=[
+                                                                {"label": i, "value": i}
+                                                                for i in column_list
+                                                            ],
+                                                            multi=False,
+                                                            placeholder="Select x column",
+                                                            value='job',
+                                                           )
+                                           ]
+                                          ),
+                                  html.Div(className='div-for-dropdown',
+                                           children=[
+                                               dcc.Dropdown(id='selector2',
+                                                            options=[
+                                                                {"label": i, "value": i}
+                                                                for i in column_list
+                                                            ],
+                                                            multi=False,
+                                                            placeholder="Select y column",
+                                                            value='education',
+                                                           )
+                                           ]
+                                          ),
+
+                              ]
+                             ),
+
+                     # Define the right element
+                     html.Div(className='eight columns div-for-charts bg-grey',
+                              children = [
+                                  dcc.Graph(id='scatterplot',
+                                            config={'displayModeBar': False},
+                                            animate=True,
+                                            figure=px.scatter(df,
+                                                              x='job',
+                                                              y='education',
+                                                              color='duration',
+                                                              template='plotly_dark').update_layout(
+                                                {'plot_bgcolor': 'rgba(0, 0, 0, 0)',
+                                                 'paper_bgcolor': 'rgba(0, 0, 0, 0)'})
+                                           )
+                              ]
+                             )
+
+                 ]
+                )
+    ]
+)
+
+if __name__ == '__main__':
+    app.run_server(debug=True, dev_tools_ui=False, dev_tools_props_check=True)
+
